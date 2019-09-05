@@ -1,59 +1,55 @@
 package org.vaadin.spring.tutorial;
 
+import javax.servlet.annotation.WebServlet;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.vaadin.annotations.Theme;
+import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.navigator.View;
 import com.vaadin.navigator.ViewDisplay;
 import com.vaadin.server.VaadinRequest;
+import com.vaadin.server.VaadinServlet;
 import com.vaadin.spring.annotation.SpringUI;
 import com.vaadin.spring.annotation.SpringViewDisplay;
-import com.vaadin.ui.Button;
-import com.vaadin.ui.Component;
-import com.vaadin.ui.CssLayout;
-import com.vaadin.ui.Panel;
+import com.vaadin.ui.Grid;
+import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
-import com.vaadin.ui.themes.ValoTheme;
 
 @Theme("valo")
 @SpringUI
 @SpringViewDisplay
 public class MyUI extends UI implements ViewDisplay {
 
-    private Panel springViewDisplay;
+	@Autowired
+	private CustomerService service;
 
-    @Override
-    protected void init(VaadinRequest request) {
-        final VerticalLayout root = new VerticalLayout();
-        root.setSizeFull();
-        setContent(root);
+	private Grid<Customer> grid = new Grid<>();
 
-        final CssLayout navigationBar = new CssLayout();
-        navigationBar.addStyleName(ValoTheme.LAYOUT_COMPONENT_GROUP);
-        navigationBar.addComponent(createNavigationButton("UI Scoped View",
-                UIScopedView.VIEW_NAME));
-        navigationBar.addComponent(createNavigationButton("View Scoped View",
-                ViewScopedView.VIEW_NAME));
-        root.addComponent(navigationBar);
+	@Override
+	protected void init(VaadinRequest vaadinRequest) {
+		final VerticalLayout layout = new VerticalLayout();
+		service.ensureTestData();
 
-        springViewDisplay = new Panel();
-        springViewDisplay.setSizeFull();
-        root.addComponent(springViewDisplay);
-        root.setExpandRatio(springViewDisplay, 1.0f);
-    }
+		grid.setItems(service.findAll());
+		grid.addColumn(Customer::getFirstName).setCaption("First Name");
+		grid.addColumn(Customer::getLastName).setCaption("Last Name");
+		grid.addColumn(Customer::getEmail).setCaption("Email");
 
-    private Button createNavigationButton(String caption,
-            final String viewName) {
-        Button button = new Button(caption);
-        button.addStyleName(ValoTheme.BUTTON_SMALL);
-        // If you didn't choose Java 8 when creating the project, convert this
-        // to an anonymous listener class
-        button.addClickListener(
-                event -> getUI().getNavigator().navigateTo(viewName));
-        return button;
-    }
+		layout.addComponents(grid);
 
-    @Override
-    public void showView(View view) {
-        springViewDisplay.setContent((Component) view);
-    }
+		setContent(layout);
+	}
+
+	@WebServlet(urlPatterns = "/*", name = "MyUIServlet", asyncSupported = true)
+	@VaadinServletConfiguration(ui = MyUI.class, productionMode = false)
+	public static class MyUIServlet extends VaadinServlet {
+	}
+
+	@Override
+	public void showView(View view) {
+		// TODO Auto-generated method stub
+		
+	}
 }
